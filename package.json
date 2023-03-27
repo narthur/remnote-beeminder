@@ -1,0 +1,25 @@
+{
+  "name": "remnote-beeminder",
+  "version": "1.0.0",
+  "description": "- https://plugins.remnote.com/",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "validate": "npx remnote-plugin validate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/narthur/remnote-beeminder.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/narthur/remnote-beeminder/issues"
+  },
+  "homepage": "https://github.com/narthur/remnote-beeminder#readme",
+  "dependencies": {
+    "@remnote/plugin-sdk": "0.0.23",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
