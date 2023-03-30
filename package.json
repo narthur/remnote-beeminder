@@ -4,7 +4,7 @@
   "description": "- https://plugins.remnote.com/",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "validate": "npx remnote-plugin validate",
     "build": "rimraf ./dist && tsc"
   },
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "rimraf": "^4.4.1",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.2",
+    "vitest": "^0.29.8"
   }
 }
