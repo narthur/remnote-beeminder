@@ -13,6 +13,8 @@ async function onActivate(plugin: ReactRNPlugin) {
   });
 }
 
-async function onDeactivate() {}
+async function onDeactivate() {
+  // TODO
+}
 
 declareIndexPlugin(onActivate, onDeactivate);
