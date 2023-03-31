@@ -1,6 +1,6 @@
 name: CI
 on: push
-environment:
+env:
   NODE_VERSION: 16
 jobs:
   test:
