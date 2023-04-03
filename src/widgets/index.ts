@@ -5,6 +5,12 @@ import {
 } from "@remnote/plugin-sdk";
 
 async function onActivate(plugin: ReactRNPlugin) {
+  await plugin.settings.registerStringSetting({
+    id: "name",
+    title: "Name",
+    defaultValue: "Bobe",
+  });
+
   await plugin.app.registerWidget("hello-world", WidgetLocation.RightSidebar, {
     dimensions: {
       width: 300,

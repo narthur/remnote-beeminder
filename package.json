@@ -6,9 +6,10 @@
   "scripts": {
     "test": "vitest",
     "validate": "npx remnote-plugin validate",
-    "build": "rimraf ./dist && tsc && cpy './*' ./dist --cwd=public",
+    "build": "vite build",
     "lint": "eslint .",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "dev": "vite"
   },
   "repository": {
     "type": "git",
@@ -27,13 +28,17 @@
   },
   "devDependencies": {
     "@types/react": "^18.0.31",
+    "@types/react-dom": "^18.0.11",
     "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@vitejs/plugin-react": "^3.1.0",
     "cpy-cli": "^4.2.0",
     "eslint": "^8.37.0",
     "eslint-plugin-react": "^7.32.2",
+    "live-server": "^1.2.2",
     "prettier": "^2.8.7",
     "rimraf": "^4.4.1",
     "typescript": "^5.0.2",
+    "vite": "^4.2.1",
     "vitest": "^0.29.8"
   }
 }
