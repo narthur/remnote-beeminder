@@ -80,7 +80,7 @@ async function shouldCountEdits(rem: Rem): Promise<boolean> {
 
   if (shouldCount) return true;
 
-  const parent = await rem?.getParentRem();
+  const parent = await rem.getParentRem();
 
   if (parent) return shouldCountEdits(parent);
 
