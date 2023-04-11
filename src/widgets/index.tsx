@@ -1,6 +1,11 @@
 import { declareIndexPlugin, ReactRNPlugin, WidgetLocation } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
+import axios from 'axios';
+
+type Goal = {
+  slug: string;
+};
 
 async function onActivate(plugin: ReactRNPlugin) {
   // Register settings
@@ -14,6 +19,28 @@ async function onActivate(plugin: ReactRNPlugin) {
     id: 'bmtoken',
     title: 'Beeminder auth token',
     defaultValue: '',
+  });
+
+  const bmuser = await plugin.settings.getSetting('bmuser');
+  const bmtoken = await plugin.settings.getSetting('bmtoken');
+  const url = `https://www.beeminder.com/api/v1/users/${bmuser}/goals.json?auth_token=${bmtoken}`;
+  const { data } = await axios.get(url);
+  const slugs = data.map((g: Goal) => g.slug);
+
+  slugs.sort();
+
+  const options = slugs.map((s: string) => ({ key: s, value: s, label: s }));
+
+  await plugin.settings.registerDropdownSetting({
+    id: 'goal-reviews',
+    title: 'Beeminder goal for review count',
+    options,
+  });
+
+  await plugin.settings.registerDropdownSetting({
+    id: 'goal-edits',
+    title: 'Beeminder goal for edit count',
+    options,
   });
 
   // A command that inserts text into the editor if focused.
