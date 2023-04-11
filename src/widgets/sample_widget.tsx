@@ -1,6 +1,8 @@
 import { usePlugin, renderWidget, useTracker } from '@remnote/plugin-sdk';
 
 export const SampleWidget = () => {
+  console.log('sample widget renderedddd');
+
   const plugin = usePlugin();
 
   let name = useTracker(() => plugin.settings.getSetting<string>('name'));
