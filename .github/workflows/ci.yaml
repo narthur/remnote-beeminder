@@ -14,7 +14,7 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: remnote_beeminder
-          path: dist
+          path: PluginZip.zip
   release:
     if: github.ref == 'refs/heads/main'
     needs: build
@@ -24,8 +24,6 @@ jobs:
       - uses: actions/download-artifact@v1
         with:
           name: remnote_beeminder
-      - run: |
-          zip -r remnote_beeminder.zip remnote_beeminder/*
       - uses: actions/create-release@v1
         id: create_release
         env:
@@ -40,6 +38,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: remnote_beeminder.zip
+          asset_path: PluginZip.zip
           asset_name: remnote_beeminder.zip
           asset_content_type: application/zip
