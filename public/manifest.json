@@ -1,9 +1,9 @@
 {
   "manifestVersion": 1,
-  "id": "plugin_template",
-  "name": "Plugin Template",
-  "author": "remnote",
-  "repoUrl": "",
+  "id": "beeminder_integration",
+  "name": "Beeminder Integration",
+  "author": "Nathan Arthur",
+  "repoUrl": "https://github.com/narthur/remnote-beeminder",
   "version": {
     "major": 0,
     "minor": 0,
