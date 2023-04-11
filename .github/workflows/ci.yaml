@@ -39,6 +39,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: remnote_beeminder.zip
+          asset_path: remnote_beeminder/PluginZip.zip
           asset_name: remnote_beeminder.zip
           asset_content_type: application/zip
