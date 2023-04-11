@@ -31,11 +31,11 @@ async function onActivate(plugin: ReactRNPlugin) {
   });
 
   // Register event handlers
-  plugin.event.addListener(AppEvents.QueueCompleteCard, undefined, async (e) => {
-    await syncThrottled('review-count-', 'goal-reviews', plugin);
-  });
+  plugin.event.addListener(AppEvents.QueueCompleteCard, undefined, () =>
+    syncThrottled('review-count-', 'goal-reviews', plugin)
+  );
 
-  plugin.event.addListener(AppEvents.EditorTextEdited, undefined, async (e) => {
+  plugin.event.addListener(AppEvents.EditorTextEdited, undefined, async () => {
     const rem = await plugin.focus.getFocusedPortal();
 
     if (!rem) return;
