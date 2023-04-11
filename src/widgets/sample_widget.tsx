@@ -1,23 +1,51 @@
 import { usePlugin, renderWidget, useTracker } from '@remnote/plugin-sdk';
+import axios from 'axios';
+import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
+type User = {
+  username: string;
+};
 
 export const SampleWidget = () => {
-  console.log('sample widget renderedddd');
-
   const plugin = usePlugin();
+  const bmuser = useTracker(() => plugin.settings.getSetting<string>('bmuser'));
+  const bmtoken = useTracker(() => plugin.settings.getSetting<string>('bmtoken'));
 
-  let name = useTracker(() => plugin.settings.getSetting<string>('name'));
-  let likesPizza = useTracker(() => plugin.settings.getSetting<boolean>('pizza'));
-  let favoriteNumber = useTracker(() => plugin.settings.getSetting<number>('favorite-number'));
+  const user = useQuery<User>(
+    ['user'],
+    async () => {
+      const url = `https://www.beeminder.com/api/v1/users/${bmuser}.json?auth_token=${bmtoken}`;
+      const { data } = await axios.get(url);
+
+      return data;
+    },
+    {
+      enabled: !!bmuser && !!bmtoken,
+    }
+  );
 
   return (
     <div className="p-2 m-2 rounded-lg rn-clr-background-light-positive rn-clr-content-positive">
       <h1 className="text-xl">Sample Plugin</h1>
+
       <div>
-        Hi {name}, you {!!likesPizza ? 'do' : "don't"} like pizza and your favorite number is{' '}
-        {favoriteNumber}!
+        {user.isSuccess && (
+          <>
+            Authenticated as Beeminder user{' '}
+            <a href={`https://beeminder.com/${user.data?.username}`} target="_blank">
+              {user.data?.username}
+            </a>
+          </>
+        )}
       </div>
     </div>
   );
 };
 
-renderWidget(SampleWidget);
+renderWidget(() => (
+  <QueryClientProvider client={queryClient}>
+    <SampleWidget />
+  </QueryClientProvider>
+));

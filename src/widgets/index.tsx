@@ -5,21 +5,15 @@ import '../App.css';
 async function onActivate(plugin: ReactRNPlugin) {
   // Register settings
   await plugin.settings.registerStringSetting({
-    id: 'name',
-    title: 'What is your Name?',
-    defaultValue: 'Bob',
+    id: 'bmuser',
+    title: 'Beeminder username',
+    defaultValue: '',
   });
 
-  await plugin.settings.registerBooleanSetting({
-    id: 'pizza',
-    title: 'Do you like pizza?',
-    defaultValue: true,
-  });
-
-  await plugin.settings.registerNumberSetting({
-    id: 'favorite-number',
-    title: 'What is your favorite number?',
-    defaultValue: 42,
+  await plugin.settings.registerStringSetting({
+    id: 'bmtoken',
+    title: 'Beeminder auth token',
+    defaultValue: '',
   });
 
   // A command that inserts text into the editor if focused.

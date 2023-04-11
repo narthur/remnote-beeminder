@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@remnote/plugin-sdk": "^0.0.18",
+    "@tanstack/react-query": "^4.29.1",
+    "axios": "^1.3.5",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
