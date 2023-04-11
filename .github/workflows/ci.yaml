@@ -19,6 +19,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
       - uses: actions/download-artifact@v1
         with:
