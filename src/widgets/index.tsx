@@ -75,7 +75,7 @@ async function syncBeeminderData(keyPrefix: string, goalSetting: string, plugin:
 }
 
 async function shouldCountEdits(rem: Rem): Promise<boolean> {
-  const tags = await rem?.getTagRems();
+  const tags = await rem.getTagRems();
   const shouldCount = tags.find((t) => t.text.toString() === 'BmCountEdits');
 
   if (shouldCount) return true;
