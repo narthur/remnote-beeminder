@@ -18,5 +18,6 @@
       "type": "All",
       "level": "ReadCreateModifyDelete"
     }
-  ]
+  ],
+  "unlisted": true
 }
