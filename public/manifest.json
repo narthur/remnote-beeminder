@@ -5,9 +5,9 @@
   "author": "Nathan Arthur",
   "repoUrl": "https://github.com/narthur/remnote-beeminder",
   "version": {
-    "major": 0,
+    "major": 1,
     "minor": 0,
-    "patch": 2
+    "patch": 0
   },
   "theme": [],
   "enableOnMobile": false,

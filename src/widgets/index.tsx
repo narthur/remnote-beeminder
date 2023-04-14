@@ -1,38 +1,53 @@
-import { AppEvents, declareIndexPlugin, ReactRNPlugin, Rem } from '@remnote/plugin-sdk';
+import {
+  AppEvents,
+  declareIndexPlugin,
+  ReactRNPlugin,
+  Rem,
+  WidgetLocation,
+} from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
 import axios from 'axios';
 import debounce from 'debounce';
+import { BM_IDS, makeDaystamp, shouldCountEdits } from '../shared';
 
 async function onActivate(plugin: ReactRNPlugin) {
   // Register settings
   await plugin.settings.registerStringSetting({
-    id: 'bmuser',
+    id: BM_IDS.authUser,
     title: 'Beeminder username',
     defaultValue: '',
   });
 
   await plugin.settings.registerStringSetting({
-    id: 'bmtoken',
+    id: BM_IDS.authToken,
     title: 'Beeminder auth token',
     defaultValue: '',
   });
 
   await plugin.settings.registerStringSetting({
-    id: 'goal-reviews',
+    id: BM_IDS.goalReviews,
     title: 'Beeminder goal for review count',
     defaultValue: '',
   });
 
   await plugin.settings.registerStringSetting({
-    id: 'goal-edits',
+    id: BM_IDS.goalEdits,
     title: 'Beeminder goal for edit count',
     defaultValue: '',
   });
 
+  // Register widgets
+  await plugin.app.registerWidget(BM_IDS.widget, WidgetLocation.RightSidebar, {
+    dimensions: {
+      height: 'auto',
+      width: '100%',
+    },
+  });
+
   // Register event handlers
   plugin.event.addListener(AppEvents.QueueCompleteCard, undefined, () =>
-    syncThrottled('review-count-', 'goal-reviews', plugin)
+    syncThrottled(BM_IDS.reviewCount, BM_IDS.goalReviews, plugin)
   );
 
   plugin.event.addListener(AppEvents.EditorTextEdited, undefined, async () => {
@@ -44,47 +59,36 @@ async function onActivate(plugin: ReactRNPlugin) {
 
     if (!shouldCount) return;
 
-    await syncThrottled('edit-count-', 'goal-edits', plugin);
+    await syncThrottled(BM_IDS.editCount, BM_IDS.goalEdits, plugin);
   });
 }
 
 const syncThrottled = debounce(syncBeeminderData, 1000);
 
-async function syncBeeminderData(keyPrefix: string, goalSetting: string, plugin: ReactRNPlugin) {
-  const yyyymmdd = new Date().toISOString().split('T')[0].replace(/-/g, '');
-  const key = `${keyPrefix}${yyyymmdd}`;
-  const prev: number = (await plugin.storage.getSynced(key)) || 0;
-  const next = prev + 1;
+async function getCount(key: string, plugin: ReactRNPlugin): Promise<number> {
+  return (await plugin.storage.getSynced(key)) || 0;
+}
 
-  await plugin.storage.setSynced(key, next);
+async function syncBeeminderData(countId: string, goalId: string, plugin: ReactRNPlugin) {
+  const prev = await getCount(countId, plugin);
+  const value = prev + 1;
 
-  const bmuser = await plugin.settings.getSetting('bmuser');
-  const bmtoken = await plugin.settings.getSetting('bmtoken');
-  const slug = await plugin.settings.getSetting(goalSetting);
+  await plugin.storage.setSynced(countId, value);
+
+  const bmuser = await plugin.settings.getSetting(BM_IDS.authUser);
+  const bmtoken = await plugin.settings.getSetting(BM_IDS.authToken);
+  const slug = await plugin.settings.getSetting(goalId);
 
   if (!slug || !bmuser || !bmtoken) return;
 
   const url = `https://www.beeminder.com/api/v1/users/${bmuser}/goals/${slug}/datapoints.json?auth_token=${bmtoken}`;
 
   axios.post(url, {
-    daystamp: yyyymmdd,
-    value: next,
+    daystamp: makeDaystamp(),
+    value,
     comment: 'via RemNote Beeminder plugin',
-    requestid: key,
+    requestid: countId,
   });
-}
-
-async function shouldCountEdits(rem: Rem): Promise<boolean> {
-  const tags = await rem.getTagRems();
-  const shouldCount = tags.find((t) => t.text.toString() === 'BmCountEdits');
-
-  if (shouldCount) return true;
-
-  const parent = await rem.getParentRem();
-
-  if (parent) return shouldCountEdits(parent);
-
-  return false;
 }
 
 async function onDeactivate(plugin: ReactRNPlugin) {}
