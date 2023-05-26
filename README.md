@@ -25,4 +25,18 @@ npm run dev
 
 Then follow the instructions [here][1].
 
+## Deploying
+
+Run `npm run build` and then upload the resulting `PluginZip.zip` file using [these instructions][3].
+
+## Installation
+
+As long as the plugin is [unlisted][2], you'll need to visit the following URL to install the deployed plugin: 
+
+<https://www.remnote.com/plugins/beeminder_integration>
+
 [1]: https://plugins.remnote.com/getting-started/quick_start_guide#run-the-plugin-template-inside-remnote
+
+[2]: https://plugins.remnote.com/advanced/unlisted_plugins
+
+[3]: https://plugins.remnote.com/advanced/submitting_plugins
