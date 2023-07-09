@@ -1,4 +1,4 @@
-import { ReactRNPlugin, Rem } from '@remnote/plugin-sdk';
+import { RNPlugin, ReactRNPlugin, Rem } from '@remnote/plugin-sdk';
 
 export function makeDaystamp(): string {
   return new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -8,7 +8,7 @@ function makeKey(prefix: string): string {
   return `${prefix}${makeDaystamp()}`;
 }
 
-export const BM_IDS: Record<string, string> = {
+export const BM_IDS = {
   reviewCount: makeKey('bm-review-count-'),
   editCount: makeKey('bm-edit-count-'),
   authUser: 'bm-auth-user',
@@ -16,28 +16,38 @@ export const BM_IDS: Record<string, string> = {
   goalReviews: 'bm-goal-reviews',
   goalEdits: 'bm-goal-edits',
   widget: 'bm-widget',
+  enableLogging: 'bm-enable-logging',
 };
 
-export async function shouldCountEdits(rem: Rem): Promise<boolean> {
-  const tags = await rem.getTagRems();
-  const shouldCount = tags.find((t) => t.text?.toString() === 'BmCountEdits');
-
-  if (shouldCount) return true;
-
-  const parent = await rem.getParentRem();
-
-  if (parent) return shouldCountEdits(parent);
-
-  return false;
+export async function getAncestorTextTags(rem: Rem): Promise<string[]> {
+  return (await rem.ancestorTagRem())
+    .map((t) => t.text?.toString())
+    .filter((v): v is string => !!v);
 }
 
-export async function logMessage(message: string, plugin: ReactRNPlugin): Promise<void> {
-  const title = 'Beeminder Integration Logs'
-  const parent = await plugin.rem.findByName([title], null) ?? await plugin.rem.createSingleRemWithMarkdown(title);
+export async function shouldCountEdits(rem: Rem): Promise<boolean> {
+  return (await getAncestorTextTags(rem)).includes('BmCountEdits');
+}
 
-  if (!parent) return;
+export async function getLogRem(plugin: RNPlugin): Promise<Rem | undefined> {
+  const enabled = await plugin.settings.getSetting(BM_IDS.enableLogging);
 
-  const entry = await plugin.rem.createSingleRemWithMarkdown(message);
+  if (!enabled) return;
 
-  await entry?.setParent(parent);
+  const title = 'Beeminder Integration Logs';
+
+  return (
+    (await plugin.rem.findByName([title], null)) ??
+    (await plugin.rem.createSingleRemWithMarkdown(title))
+  );
+}
+
+export async function logMessage(message: string, plugin: RNPlugin): Promise<void> {
+  const rem = await getLogRem(plugin);
+
+  if (!rem) return;
+
+  const entry = await plugin.rem.createSingleRemWithMarkdown(`${new Date()}: ${message}`);
+
+  await entry?.setParent(rem);
 }

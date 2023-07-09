@@ -1,6 +1,7 @@
 import {
   AppEvents,
   declareIndexPlugin,
+  EventCallbackFn,
   ReactRNPlugin,
   Rem,
   WidgetLocation,
@@ -9,7 +10,7 @@ import '../style.css';
 import '../App.css';
 import axios from 'axios';
 import debounce from 'debounce';
-import { BM_IDS, logMessage, makeDaystamp, shouldCountEdits } from '../shared';
+import { BM_IDS, getAncestorTextTags, logMessage, makeDaystamp, shouldCountEdits } from '../shared';
 
 async function onActivate(plugin: ReactRNPlugin) {
   // Register settings
@@ -37,6 +38,12 @@ async function onActivate(plugin: ReactRNPlugin) {
     defaultValue: '',
   });
 
+  await plugin.settings.registerBooleanSetting({
+    id: BM_IDS.enableLogging,
+    title: 'Enable logging',
+    defaultValue: false,
+  });
+
   // Register widgets
   await plugin.app.registerWidget(BM_IDS.widget, WidgetLocation.RightSidebar, {
     dimensions: {
@@ -46,35 +53,52 @@ async function onActivate(plugin: ReactRNPlugin) {
   });
 
   // Register event handlers
-  plugin.event.addListener(AppEvents.QueueCompleteCard, undefined, async () => {
+  addEventListener(
+    'QueueCompleteCard',
+    async () => {
       await logMessage('QueueCompleteCard', plugin);
-      await syncThrottled(BM_IDS.reviewCount, BM_IDS.goalReviews, plugin)
-    }
+      await syncBeeminderData(BM_IDS.reviewCount, BM_IDS.goalReviews, plugin);
+    },
+    plugin
   );
 
-  plugin.event.addListener(AppEvents.EditorTextEdited, undefined, async () => {
-    await logMessage('EditorTextEdited', plugin);
+  addEventListener(
+    'EditorTextEdited',
+    async () => {
+      await logMessage(`EditorTextEdited`, plugin);
 
-    const rem = await plugin.focus.getFocusedPortal();
+      const rem = await plugin.focus.getFocusedPortal();
 
-    if (!rem) {
-      await logMessage('No focused portal', plugin);
-      return;
-    };
+      if (!rem) {
+        await logMessage('No focused portal', plugin);
+        return;
+      }
 
-    const shouldCount = await shouldCountEdits(rem);
+      const shouldCount = await shouldCountEdits(rem);
 
-    if (!shouldCount) {
-      await logMessage('Should not count', plugin);
-      return;
-    };
+      if (!shouldCount) {
+        const tags = await getAncestorTextTags(rem);
+        await logMessage(
+          `Should not count. ${tags.length ? `Tags: ${tags.join(', ')}` : 'No tags'}`,
+          plugin
+        );
+        return;
+      }
 
-    await logMessage('Should count', plugin);
-    await syncThrottled(BM_IDS.editCount, BM_IDS.goalEdits, plugin);
-  });
+      await logMessage('Should count', plugin);
+      await syncBeeminderData(BM_IDS.editCount, BM_IDS.goalEdits, plugin);
+    },
+    plugin
+  );
 }
 
-const syncThrottled = debounce(syncBeeminderData, 1000);
+function addEventListener(
+  event: keyof typeof AppEvents,
+  callback: EventCallbackFn,
+  plugin: ReactRNPlugin
+) {
+  plugin.event.addListener(AppEvents[event], undefined, debounce(callback, 1000));
+}
 
 async function getCount(key: string, plugin: ReactRNPlugin): Promise<number> {
   return (await plugin.storage.getSynced(key)) || 0;
@@ -96,7 +120,7 @@ async function syncBeeminderData(countId: string, goalId: string, plugin: ReactR
   if (!slug || !bmuser || !bmtoken) {
     await logMessage('Missing settings', plugin);
     return;
-  };
+  }
 
   const url = `https://www.beeminder.com/api/v1/users/${bmuser}/goals/${slug}/datapoints.json?auth_token=${bmtoken}`;
 

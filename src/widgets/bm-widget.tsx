@@ -1,7 +1,8 @@
-import { usePlugin, renderWidget, useTracker } from '@remnote/plugin-sdk';
+import { renderWidget, useTracker, RemViewer, Rem } from '@remnote/plugin-sdk';
 import axios from 'axios';
-import { useQuery, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BM_IDS, shouldCountEdits } from '../shared';
+import { useQuery, QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query';
+import { BM_IDS, getLogRem, shouldCountEdits } from '../shared';
+import { useEffect, useRef, useState } from 'react';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,126 @@ const CellHead = ({ children, className }: { children: React.ReactNode; classNam
   return <th className={`font-bold p-1 border-b text-left ${className}`}>{children}</th>;
 };
 
+const Logs = (): JSX.Element => {
+  const logs = useLogs();
+
+  if (logs === undefined) {
+    return <p>Loading...</p>;
+  }
+
+  return (
+    <>
+      <p>Last 10 logs of {logs.length} total:</p>
+      <ul>
+        {logs.slice(-10).map((r) => (
+          <li key={r._id}>
+            <RemViewer remId={r._id} width="100%" />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+};
+
+function useLogs() {
+  const parent = useTracker(getLogRem);
+  const rems = useTracker(async () => parent?.getDescendants(), [parent]);
+  const [logs, setItems] = useState<Rem[]>();
+  const timeout = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    clearTimeout(timeout.current);
+    timeout.current = setTimeout(() => {
+      if (rems) setItems(rems);
+    }, 1000);
+    return () => clearTimeout(timeout.current);
+  }, [rems]);
+
+  return logs;
+}
+
+function useIsCounting() {
+  return (
+    useTracker(async (p) => {
+      const rem = await p.focus.getFocusedPortal();
+      return rem && shouldCountEdits(rem);
+    }) || false
+  );
+}
+
+async function getBeeminderUser(user: string | undefined, token: string | undefined) {
+  if (!user || !token) {
+    throw new Error('No user or token');
+  }
+
+  return (
+    await axios.get<User>(`https://www.beeminder.com/api/v1/users/${user}.json?auth_token=${token}`)
+  ).data;
+}
+
+function useBeeminderUser(user: string | undefined, token: string | undefined) {
+  return useQuery<User>(['user'], () => getBeeminderUser(user, token), {
+    enabled: !!user && !!token,
+  });
+}
+
+const buttonStyles = {
+  backgroundColor: '#fff',
+  color: '#000',
+  borderRadius: '4px',
+  padding: '4px 8px',
+  cursor: 'pointer',
+  marginRight: '8px',
+};
+
+const buttonStylesLoading = {
+  ...buttonStyles,
+  backgroundColor: '#ccc',
+};
+
+function LogDetails() {
+  const enableLogging = useTracker((p) => p.settings.getSetting<boolean>(BM_IDS.enableLogging));
+  const logRem = useTracker(getLogRem);
+  const openLogs = useMutation(['rem.open'], () => Promise.resolve(logRem?.openRemAsPage()));
+  const deleteLogs = useMutation(['rem.delete'], () => Promise.resolve(logRem?.remove()));
+  const [showLogs, setShowLogs] = useState(false);
+
+  return (
+    <>
+      <p>
+        <strong>Logging {enableLogging ? 'enabled' : 'disabled'}.</strong> You can{' '}
+        {enableLogging ? 'disable' : 'enable'} logging in the plugin's settings.
+      </p>
+
+      {logRem && (
+        <>
+          <button style={buttonStyles} onClick={() => setShowLogs((v) => !v)}>
+            {showLogs ? 'Hide logs' : 'Show logs'}
+          </button>
+
+          <button
+            style={openLogs.isLoading ? buttonStylesLoading : buttonStyles}
+            disabled={openLogs.isLoading}
+            onClick={() => openLogs.mutate()}
+          >
+            {openLogs.isLoading ? 'Opening...' : 'See all logs'}
+          </button>
+
+          <button
+            style={deleteLogs.isLoading ? buttonStylesLoading : buttonStyles}
+            disabled={deleteLogs.isLoading}
+            onClick={() => deleteLogs.mutate()}
+          >
+            {deleteLogs.isLoading ? 'Deleting...' : 'Delete all logs'}
+          </button>
+
+          {showLogs && <Logs />}
+        </>
+      )}
+    </>
+  );
+}
+
 export const SampleWidget = () => {
   const bmuser = useTracker((p) => p.settings.getSetting<string>(BM_IDS.authUser));
   const bmtoken = useTracker((p) => p.settings.getSetting<string>(BM_IDS.authToken));
@@ -33,25 +154,9 @@ export const SampleWidget = () => {
   const goalEdits = useTracker((p) => p.settings.getSetting<string>(BM_IDS.goalEdits));
   const reviewCount = useTracker((p) => p.storage.getSynced<number>(BM_IDS.reviewCount)) || 0;
   const editCount = useTracker((p) => p.storage.getSynced<number>(BM_IDS.editCount)) || 0;
-  const counting: boolean =
-    useTracker(async (p) => {
-      const rem = await p.focus.getFocusedPortal();
-      if (!rem) return false;
-      return shouldCountEdits(rem);
-    }) || false;
 
-  const user = useQuery<User>(
-    ['user'],
-    async () => {
-      const url = `https://www.beeminder.com/api/v1/users/${bmuser}.json?auth_token=${bmtoken}`;
-      const { data } = await axios.get(url);
-
-      return data;
-    },
-    {
-      enabled: !!bmuser && !!bmtoken,
-    }
-  );
+  const counting = useIsCounting();
+  const user = useBeeminderUser(bmuser, bmtoken);
 
   if (!bmuser || !bmtoken) {
     return (
@@ -130,6 +235,8 @@ export const SampleWidget = () => {
         are only counted when you are editing a rem which is or has an ancestor tagged with
         BmCountEdits.
       </p>
+
+      <LogDetails />
     </Shell>
   );
 };
