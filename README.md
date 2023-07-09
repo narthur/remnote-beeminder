@@ -30,6 +30,7 @@ Then follow the instructions [here][1].
 - Modify the plugin's version in `public/manifest.json`
 - Run `npm run build`
 - Upload the resulting `PluginZip.zip` file using [these instructions][3]
+- Wait for the version number [here][4] to match the one you set in `manifest.json`
 
 ## Installation
 
@@ -40,3 +41,4 @@ As long as the plugin is [unlisted][2], you'll need to visit the following URL t
 [1]: https://plugins.remnote.com/getting-started/quick_start_guide#run-the-plugin-template-inside-remnote
 [2]: https://plugins.remnote.com/advanced/unlisted_plugins
 [3]: https://plugins.remnote.com/advanced/submitting_plugins
+[4]: https://www.remnote.com/plugins/beeminder_integration
