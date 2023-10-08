@@ -1,7 +1,8 @@
-import { RNPlugin, ReactRNPlugin, Rem } from '@remnote/plugin-sdk';
+import { RNPlugin, Rem } from '@remnote/plugin-sdk';
 
 export function makeDaystamp(): string {
-  return new Date().toISOString().split('T')[0].replace(/-/g, '');
+  const now = new Date();
+  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 }
 
 function makeKey(prefix: string): string {
