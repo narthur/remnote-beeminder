@@ -3,14 +3,18 @@ import {
   declareIndexPlugin,
   EventCallbackFn,
   ReactRNPlugin,
-  Rem,
   WidgetLocation,
 } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
-import axios from 'axios';
 import debounce from 'debounce';
-import { BM_IDS, getAncestorTextTags, logMessage, makeDaystamp, shouldCountEdits } from '../shared';
+import {
+  BM_IDS,
+  getAncestorTextTags,
+  logMessage,
+  shouldCountEdits,
+  syncBeeminderData,
+} from '../shared';
 
 async function onActivate(plugin: ReactRNPlugin) {
   // Register settings
@@ -98,39 +102,6 @@ function addEventListener(
   plugin: ReactRNPlugin
 ) {
   plugin.event.addListener(AppEvents[event], undefined, debounce(callback, 1000));
-}
-
-async function getCount(key: string, plugin: ReactRNPlugin): Promise<number> {
-  return (await plugin.storage.getSynced(key)) || 0;
-}
-
-async function syncBeeminderData(countId: string, goalId: string, plugin: ReactRNPlugin) {
-  await logMessage('syncBeeminderData', plugin);
-
-  const prev = await getCount(countId, plugin);
-  const value = prev + 1;
-
-  await logMessage(`Setting ${countId} to ${value}`, plugin);
-  await plugin.storage.setSynced(countId, value);
-
-  const bmuser = await plugin.settings.getSetting(BM_IDS.authUser);
-  const bmtoken = await plugin.settings.getSetting(BM_IDS.authToken);
-  const slug = await plugin.settings.getSetting(goalId);
-
-  if (!slug || !bmuser || !bmtoken) {
-    await logMessage('Missing settings', plugin);
-    return;
-  }
-
-  const url = `https://www.beeminder.com/api/v1/users/${bmuser}/goals/${slug}/datapoints.json?auth_token=${bmtoken}`;
-
-  await logMessage(`Posting to ${bmuser}/${slug}`, plugin);
-  axios.post(url, {
-    daystamp: makeDaystamp(),
-    value,
-    comment: 'via RemNote Beeminder plugin',
-    requestid: countId,
-  });
 }
 
 async function onDeactivate(plugin: ReactRNPlugin) {}

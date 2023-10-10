@@ -1,7 +1,7 @@
-import { renderWidget, useTracker, RemViewer, Rem } from '@remnote/plugin-sdk';
+import { renderWidget, useTracker, RemViewer, Rem, usePlugin } from '@remnote/plugin-sdk';
 import axios from 'axios';
 import { useQuery, QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query';
-import { BM_IDS, getLogRem, shouldCountEdits } from '../shared';
+import { BM_IDS, getLogRem, makeDaystamp, shouldCountEdits, syncBeeminderData } from '../shared';
 import { useEffect, useRef, useState } from 'react';
 
 const queryClient = new QueryClient();
@@ -148,6 +148,8 @@ function LogDetails() {
 }
 
 export const SampleWidget = () => {
+  const plugin = usePlugin();
+
   const bmuser = useTracker((p) => p.settings.getSetting<string>(BM_IDS.authUser));
   const bmtoken = useTracker((p) => p.settings.getSetting<string>(BM_IDS.authToken));
   const goalReviews = useTracker((p) => p.settings.getSetting<string>(BM_IDS.goalReviews));
@@ -221,6 +223,28 @@ export const SampleWidget = () => {
         </tbody>
       </table>
 
+      <button
+        style={buttonStyles}
+        onClick={() => {
+          Promise.all([
+            syncBeeminderData(BM_IDS.reviewCount, BM_IDS.goalReviews, plugin),
+            syncBeeminderData(BM_IDS.editCount, BM_IDS.goalEdits, plugin),
+          ])
+            .catch(() => {
+              plugin.app.toast('Error syncing with Beeminder');
+            })
+            .then((results) => {
+              if (!results?.length || results.includes(false)) {
+                plugin.app.toast('Failed to sync with Beeminder');
+              } else {
+                plugin.app.toast('Synced with Beeminder');
+              }
+            });
+        }}
+      >
+        Sync with Beeminder
+      </button>
+
       {user.isSuccess && (
         <p>
           Authenticated as Beeminder user{' '}
@@ -229,6 +253,8 @@ export const SampleWidget = () => {
           </a>
         </p>
       )}
+
+      <p>Counting for date {makeDaystamp()}</p>
 
       <p>
         {counting ? <strong>Counting edits.</strong> : <strong>Not counting edits.</strong>} Edits
