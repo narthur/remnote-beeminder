@@ -3,6 +3,9 @@ import axios from 'axios';
 
 export function makeDaystamp(): string {
   const now = new Date();
+  if (now.getHours() < 3) {
+    now.setDate(now.getDate() - 1); // Subtract one day if before 3am
+  }
   return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 }
 
