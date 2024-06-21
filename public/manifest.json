@@ -1,17 +1,17 @@
 {
   "manifestVersion": 1,
-  "id": "beeminder_integration",
+  "id": "beeminder_integration-3am-fork",
   "name": "Beeminder Integration",
-  "author": "Nathan Arthur",
+  "author": "Alok Singh",
   "repoUrl": "https://github.com/narthur/remnote-beeminder",
   "version": {
     "major": 1,
     "minor": 5,
-    "patch": 0
+    "patch": 4
   },
   "theme": [],
   "enableOnMobile": true,
-  "description": "",
+  "description": "my fork",
   "requestNative": false,
   "requiredScopes": [
     {
