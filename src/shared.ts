@@ -9,13 +9,14 @@ export function makeDaystamp(): string {
   return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 }
 
-function makeKey(prefix: string): string {
-  return `${prefix}${makeDaystamp()}`;
-}
+// Remove this function
+// function makeKey(prefix: string): string {
+//   return `${prefix}${makeDaystamp()}`;
+// }
 
 export const BM_IDS = {
-  reviewCount: makeKey('bm-review-count-'),
-  editCount: makeKey('bm-edit-count-'),
+  reviewCount: 'bm-review-count',
+  editCount: 'bm-edit-count',
   authUser: 'bm-auth-user',
   authToken: 'bm-auth-token',
   goalReviews: 'bm-goal-reviews',
@@ -62,34 +63,77 @@ export async function syncBeeminderData(
   goalId: string,
   plugin: RNPlugin
 ): Promise<boolean> {
-  await logMessage('syncBeeminderData', plugin);
-
-  const prev = await getCount(countId, plugin);
-  const value = prev + 1;
-
-  await logMessage(`Setting ${countId} to ${value}`, plugin);
-  await plugin.storage.setSynced(countId, value);
+  await logMessage(`syncBeeminderData started for countId: ${countId}, goalId: ${goalId}`, plugin);
 
   const bmuser = await plugin.settings.getSetting(BM_IDS.authUser);
   const bmtoken = await plugin.settings.getSetting(BM_IDS.authToken);
   const slug = await plugin.settings.getSetting(goalId);
 
   if (!slug || !bmuser || !bmtoken) {
-    await logMessage('Missing settings', plugin);
+    await logMessage(`Missing settings: slug=${slug}, bmuser=${bmuser}, bmtoken=${bmtoken}`, plugin);
     return false;
   }
 
   const url = `https://www.beeminder.com/api/v1/users/${bmuser}/goals/${slug}/datapoints.json?auth_token=${bmtoken}`;
+  await logMessage(`Beeminder API URL: ${url}`, plugin);
 
-  await logMessage(`Posting to ${bmuser}/${slug}`, plugin);
-  await axios.post(url, {
-    daystamp: makeDaystamp(),
-    value,
-    comment: 'via RemNote Beeminder plugin',
-    requestid: countId,
-  });
+  // Get the latest datapoint from Beeminder
+  const latestDatapoint = await getLatestDatapoint(url);
+  await logMessage(`Latest Beeminder datapoint: ${JSON.stringify(latestDatapoint)}`, plugin);
+  const latestValue = latestDatapoint ? latestDatapoint.value : 0;
+  await logMessage(`Latest Beeminder value: ${latestValue}`, plugin);
 
+  // Get the current count from storage
+  const currentCount = await getCount(countId, plugin);
+  await logMessage(`Current count from storage: ${currentCount}`, plugin);
+
+  // Calculate the difference
+  const difference = currentCount - latestValue;
+  await logMessage(`Calculated difference: ${difference}`, plugin);
+
+  if (difference <= 0) {
+    await logMessage('No new data to sync, exiting', plugin);
+    return false;
+  }
+
+  const today = makeDaystamp();
+  const requestId = `${countId}-${today}-${Date.now()}`;
+  await logMessage(`Posting to ${bmuser}/${slug} with value: ${difference}, requestId: ${requestId}`, plugin);
+  
+  try {
+    const postData = {
+      daystamp: today,
+      value: difference,
+      comment: 'via RemNote Beeminder plugin',
+      requestid: requestId,
+    };
+    await logMessage(`Post data: ${JSON.stringify(postData)}`, plugin);
+    
+    const response = await axios.post(url, postData);
+    await logMessage(`Beeminder API response: ${JSON.stringify(response.data)}`, plugin);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      await logMessage(`Error posting to Beeminder: ${error.message}`, plugin);
+      await logMessage(`Error response: ${JSON.stringify(error.response?.data)}`, plugin);
+    } else {
+      await logMessage(`Unknown error posting to Beeminder: ${error}`, plugin);
+    }
+    return false;
+  }
+
+  await logMessage('syncBeeminderData completed successfully', plugin);
   return true;
+}
+
+async function getLatestDatapoint(url: string): Promise<any> {
+  try {
+    const response = await axios.get(url);
+    const datapoints = response.data;
+    return datapoints.length > 0 ? datapoints[0] : null;
+  } catch (error) {
+    console.error('Error fetching latest datapoint:', error);
+    return null;
+  }
 }
 
 async function getCount(key: string, plugin: RNPlugin): Promise<number> {
