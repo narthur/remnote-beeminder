@@ -41,7 +41,7 @@ Then follow the instructions [here][1].
 
 ## Installation
 
-As long as the plugin is [unlisted][2], you'll need to visit the following URL to install the deployed plugin:
+If the plugin is [unlisted][2], you'll need to visit the following URL to install the deployed plugin:
 
 <https://www.remnote.com/plugins/beeminder-rotestock>
 
