@@ -1,18 +1,14 @@
-import { RNPlugin, Rem } from '@remnote/plugin-sdk';
+import { RNPlugin, Rem, Card } from '@remnote/plugin-sdk';
 import axios from 'axios';
+
+// Type definition for Int
+export type Int = number & { readonly __int__: unique symbol };
+const asInt = (n: number): Int => Math.floor(n) as Int;
 
 export function makeDaystamp(): string {
   const now = new Date();
-  if (now.getHours() < 3) {
-    now.setDate(now.getDate() - 1); // Subtract one day if before 3am
-  }
   return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 }
-
-// Remove this function
-// function makeKey(prefix: string): string {
-//   return `${prefix}${makeDaystamp()}`;
-// }
 
 export const BM_IDS = {
   reviewCount: 'bm-review-count',
@@ -23,7 +19,7 @@ export const BM_IDS = {
   goalEdits: 'bm-goal-edits',
   widget: 'bm-widget',
   enableLogging: 'bm-enable-logging',
-};
+} as const;
 
 export async function getAncestorTextTags(rem: Rem): Promise<string[]> {
   return (await rem.ancestorTagRem())
@@ -58,8 +54,25 @@ export async function logMessage(message: string, plugin: RNPlugin): Promise<voi
   await entry?.setParent(rem);
 }
 
+
+
+
+// Get maintained progress (cards that are started and caught up)
+export async function getMaintainedProgress(plugin: RNPlugin): Promise<Int> {
+  const allCards: Card[] = await plugin.card.getAll();
+
+  const maintainedCards = allCards.filter(card => {
+    if (!card.lastRepetitionTime) return false; // Filter out unstarted
+    if (!card.nextRepetitionTime) return false; // Filter out disabled
+    return card.nextRepetitionTime > Date.now(); // Only count if caught up
+  });
+
+  return asInt(maintainedCards.length);
+}
+
+// Update syncBeeminderData to use maintained progress
 export async function syncBeeminderData(
-  countId: string,
+  countId: string, 
   goalId: string,
   plugin: RNPlugin
 ): Promise<boolean> {
@@ -77,33 +90,26 @@ export async function syncBeeminderData(
   const url = `https://www.beeminder.com/api/v1/users/${bmuser}/goals/${slug}/datapoints.json?auth_token=${bmtoken}`;
   await logMessage(`Beeminder API URL: ${url}`, plugin);
 
-  // Get the latest datapoint from Beeminder
+  const currentCount: Int = await getMaintainedProgress(plugin);
+  await logMessage(`Current maintained progress count: ${currentCount}`, plugin);
+
   const latestDatapoint = await getLatestDatapoint(url);
-  await logMessage(`Latest Beeminder datapoint: ${JSON.stringify(latestDatapoint)}`, plugin);
-  const latestValue = latestDatapoint ? latestDatapoint.value : 0;
-  await logMessage(`Latest Beeminder value: ${latestValue}`, plugin);
-
-  // Get the current count from storage
-  const currentCount = await getCount(countId, plugin);
-  await logMessage(`Current count from storage: ${currentCount}`, plugin);
-
-  // Calculate the difference
-  const difference = currentCount - latestValue;
-  await logMessage(`Calculated difference: ${difference}`, plugin);
-
-  if (difference <= 0) {
-    await logMessage('No new data to sync, exiting', plugin);
+  await logMessage(`Latest Beeminder datapoint: ${latestDatapoint}`, plugin);
+  
+  // Only post if value has changed
+  if (latestDatapoint && (asInt(latestDatapoint.value) === currentCount)) {
+    await logMessage('Count unchanged, skipping sync', plugin);
     return false;
   }
 
   const today = makeDaystamp();
   const requestId = `${countId}-${today}-${Date.now()}`;
-  await logMessage(`Posting to ${bmuser}/${slug} with value: ${difference}, requestId: ${requestId}`, plugin);
+  await logMessage(`Posting to ${bmuser}/${slug} with value: ${currentCount}, requestId: ${requestId}`, plugin);
   
   try {
     const postData = {
       daystamp: today,
-      value: difference,
+      value: currentCount,
       comment: 'via RemNote Beeminder plugin',
       requestid: requestId,
     };
@@ -111,6 +117,7 @@ export async function syncBeeminderData(
     
     const response = await axios.post(url, postData);
     await logMessage(`Beeminder API response: ${JSON.stringify(response.data)}`, plugin);
+    return true;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       await logMessage(`Error posting to Beeminder: ${error.message}`, plugin);
@@ -120,11 +127,9 @@ export async function syncBeeminderData(
     }
     return false;
   }
-
-  await logMessage('syncBeeminderData completed successfully', plugin);
-  return true;
 }
 
+// Get the latest datapoint from Beeminder to check if the count has changed
 async function getLatestDatapoint(url: string): Promise<any> {
   try {
     const response = await axios.get(url);
@@ -136,6 +141,3 @@ async function getLatestDatapoint(url: string): Promise<any> {
   }
 }
 
-async function getCount(key: string, plugin: RNPlugin): Promise<number> {
-  return (await plugin.storage.getSynced(key)) || 0;
-}
