@@ -1,22 +1,22 @@
 {
   "manifestVersion": 1,
-  "id": "beeminder_integration-3am-fork",
+  "id": "beeminder-rotestock",
   "name": "Beeminder Integration",
   "author": "Alok Singh",
   "repoUrl": "https://github.com/narthur/remnote-beeminder",
   "version": {
-    "major": 1,
-    "minor": 5,
-    "patch": 51
+    "major": 2,
+    "minor": 0,
+    "patch": 0
   },
   "theme": [],
   "enableOnMobile": true,
-  "description": "my fork",
+  "description": "Automatically sync maintained progress to Beeminder after reviews",
   "requestNative": false,
   "requiredScopes": [
     {
       "type": "All",
-      "level": "ReadCreateModifyDelete"
+      "level": "ReadCreateModify"
     }
   ],
   "unlisted": true
