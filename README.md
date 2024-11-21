@@ -1,19 +1,26 @@
 # remnote-beeminder
 
-This plugin syncs your RemNote progress to Beeminder.
+This plugin automatically syncs your RemNote maintained progress to Beeminder after each review session.
 
-Supported metrics:
+## What it tracks
 
-- Review count on all cards
-- Edit count for rems with an ancestor tagged with `BmCountEdits`
+The plugin tracks "maintained progress" - the number of cards that you have:
 
-When supplying goal names for each metric in the plugin settings, provide
-the naked goalname. That is, if your goal is `username/goalname`, then
-just provide `goalname` in the goal field.
+1. Started studying (have review history)
+2. Are caught up on (not currently due)
+3. Are active (not disabled)
 
-Your Beeminder username and auth token are found at the following URL:
+This metric represents real progress - cards you've both learned AND maintained, rather than just cards you've started but might have forgotten.
 
-<https://www.beeminder.com/api/v1/auth_token.json>
+## Setup
+
+1. Get your Beeminder auth token from: <https://www.beeminder.com/api/v1/auth_token.json>
+2. In RemNote plugin settings, enter:
+   - Your Beeminder username
+   - Your auth token
+   - Your goal name (just the name part of username/goalname)
+
+The plugin will automatically sync after each review session, or you can manually sync using the `/Sync to Beeminder` command.
 
 ## Local Development
 
@@ -36,9 +43,9 @@ Then follow the instructions [here][1].
 
 As long as the plugin is [unlisted][2], you'll need to visit the following URL to install the deployed plugin:
 
-<https://www.remnote.com/plugins/beeminder_integration>
+<https://www.remnote.com/plugins/beeminder-rotestock>
 
 [1]: https://plugins.remnote.com/getting-started/quick_start_guide#run-the-plugin-template-inside-remnote
 [2]: https://plugins.remnote.com/advanced/unlisted_plugins
 [3]: https://plugins.remnote.com/advanced/submitting_plugins
-[4]: https://www.remnote.com/plugins/beeminder_integration
+[4]: https://www.remnote.com/plugins/beeminder-rotestock
